@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ünnep Visszaszámláló</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+            background-color: white;
+        }
+
+        select {
+            padding: 15px;
+        }
+
+        iframe {
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <iframe id="eventIframe" style="width: 1200px; aspect-ratio: 6/1!important;"></iframe>
+        <select id="eventSelect">
+            <option value="newYear">Újév</option>
+            <option value="nationalHoliday">Nemzeti ünnep (március 15.)</option>
+            <option value="easter">Húsvétvasárnap</option>
+            <option value="easterMonday">Húsvéthétfő</option>
+            <option value="labourDay">Munka ünnepe</option>
+            <option value="whitSunday">Pünkösdvasárnap</option>
+            <option value="stIstvan">Szent István ünnepe</option>
+            <option value="nationalHolidayOct">Nemzeti ünnep (október 23.)</option>
+            <option value="allSaints">Mindenszentek</option>
+            <option value="christmas">Karácsony</option>
+            <option value="boxingDay">Boxing Day</option>
+            <option value="newYearsEve">Szilveszter</option>
+        </select>
+    </div>
+    
+    <script>
+        const eventDates = {
+            newYear: { name: "Újév", month: 0, day: 1 },
+            nationalHoliday: { name: "Március 15-", month: 2, day: 15 },
+            labourDay: { name: "Munka ünnepé", month: 4, day: 1 },
+            stIstvan: { name: "Szent István ünnepé", month: 7, day: 20 },
+            nationalHolidayOct: { name: "Október 23-", month: 9, day: 23 },
+            allSaints: { name: "Mindenszentek", month: 10, day: 1 },
+            christmas: { name: "Karácsony", month: 11, day: 25 },
+            boxingDay: { name: "Boxing Day", month: 11, day: 26 },
+            newYearsEve: { name: "Szilveszter", month: 11, day: 31 }
+        };
+        
+        function calculateEaster(year) {
+            const A = year % 19;
+            const B = year % 4;
+            const C = year % 7;
+            const D = (19 * A + 24) % 30;
+            const E = (2 * B + 4 * C + 6 * D + 5) % 7;
+            
+            let H = 22 + D + E;
+            if (H > 31) {
+                H = H - 31;
+            }
+
+            if (E === 6 && D === 29) {
+                H = 50;
+            } else if (E === 6 && D === 28 && A > 10) {
+                H = 49;
+            }
+
+            const easterDate = new Date(year, 2, H);
+            return easterDate;
+        }
+        
+        function calculatePentecost(easterDate) {
+            const pentecostDate = new Date(easterDate);
+            pentecostDate.setDate(easterDate.getDate() + 49);
+            return pentecostDate;
+        }
+
+        const selectElement = document.getElementById("eventSelect");
+        const iframeElement = document.getElementById("eventIframe");
+
+        function getNextEventDate(eventKey) {
+            const event = eventDates[eventKey];
+            let now = new Date();
+            let eventDate = new Date(now.getFullYear(), event.month, event.day);
+
+            if (now > eventDate) {
+                eventDate.setFullYear(now.getFullYear() + 1);
+            }
+
+            return eventDate;
+        }
+
+        function updateCountdown() {
+            const selectedEvent = selectElement.value;
+            let eventDate;
+            let eventName;
+
+            if (selectedEvent === "easter") {
+                eventDate = calculateEaster(new Date().getFullYear());
+                if (eventDate.getTime() < new Date().getTime()) eventDate = calculateEaster(new Date().getFullYear() + 1);
+                eventName = "Húsvétvasárnap";
+            } else if (selectedEvent === "easterMonday") {
+                eventDate = calculateEaster(new Date().getFullYear());
+                eventDate.setDate(eventDate.getDate() + 1);
+                if (eventDate.getTime() < new Date().getTime()) {
+                    eventDate = calculateEaster(new Date().getFullYear() + 1);
+                    eventDate.setDate(eventDate.getDate() + 1);
+                }
+                eventName = "Húsvéthétfő";
+            } else if (selectedEvent === "whitSunday") {
+                const easterDate = calculateEaster(new Date().getFullYear());
+                eventDate = calculatePentecost(easterDate);
+                if (eventDate.getTime() < new Date().getTime()) eventDate = calculatePentecost(new Date().getFullYear() + 1);
+                eventName = "Pünkösdvasárnap";
+            } else {
+                const event = eventDates[selectedEvent];
+                eventDate = getNextEventDate(selectedEvent);
+                eventName = event.name;
+            }
+            
+            iframeElement.src = `countdown.html?ename=${encodeURIComponent(eventName)}&edate=${eventDate.toISOString().split('T')[0]}`;
+        }
+
+        selectElement.addEventListener("change", updateCountdown);
+        updateCountdown();
+    </script>
+</body>
+</html>
